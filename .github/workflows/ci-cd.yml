@@ -23,7 +23,9 @@ jobs:
         run: go mod download
 
       - name: Run linter, vet and tests
-        run: make doctor
+        run: |
+          make clean
+          make doctor
 
   build:
     name: Build
@@ -41,9 +43,6 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Run linter, vet and tests
-        run: make doctor
-
       - name: Build
         run: make build
 
@@ -54,4 +53,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Push to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: make dockerhub-push
