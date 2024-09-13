@@ -6,37 +6,31 @@ import (
 	"net/http"
 
 	"github.com/yagizklc/from-scratch-server/app/internal/customers"
+	"github.com/yagizklc/from-scratch-server/app/pkg"
 )
 
-type CustomersHandler struct {
+type PokemonHandler struct {
+	mux  *http.ServeMux
 	repo *customers.Repository
 }
 
-func (h CustomersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func NewPokemonHandler(config *pkg.Config) *PokemonHandler {
 
-	switch r.Method {
-	case http.MethodGet:
-		h.GetCustomerByEmail(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func NewCustomersHandler(repo *customers.Repository) *CustomersHandler {
-	return &CustomersHandler{repo: repo}
-}
-func NewDefaultCustomersHandler() *CustomersHandler {
-	connStr := "host=localhost port=5432 user=myuser password=mypassword dbname=myapp sslmode=disable"
-	repo, err := customers.NewRepository(context.Background(), connStr)
+	repo, err := customers.NewRepository(context.Background(), config.GetConnectionString())
 	if err != nil {
 		panic(err)
 	}
-	return &CustomersHandler{repo: repo}
+	return &PokemonHandler{repo: repo, mux: http.NewServeMux()}
 }
 
-func (h CustomersHandler) GetCustomerByEmail(w http.ResponseWriter, r *http.Request) {
-	email := r.URL.Query().Get("email")
-	customer, err := h.repo.GetCustomerByEmail(r.Context(), email)
+func (h *PokemonHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.mux.HandleFunc("GET /pokemon", h.GetPokemonByName)
+	h.mux.ServeHTTP(w, r)
+}
+
+func (h *PokemonHandler) GetPokemonByName(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	customer, err := h.repo.GetCustomerByEmail(r.Context(), name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

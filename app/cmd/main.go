@@ -2,54 +2,37 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/yagizklc/from-scratch-server/app/handlers"
+	"github.com/yagizklc/from-scratch-server/app/pkg"
 )
 
-type Language struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-var languages []Language
-
 const (
-	PORT = "8080"
-	HOST = "localhost"
+	DEFAULT_PORT = "8080"
+	HOST         = "localhost"
 )
 
 func main() {
-	router := http.NewServeMux()
+	PORT := flag.String("port", DEFAULT_PORT, "help message for flag n")
+	HOST := flag.String("host", HOST, "help message for flag n")
+	flag.Parse()
 
-	languages = append(languages, Language{ID: "1", Name: "Go"})
-	languages = append(languages, Language{ID: "2", Name: "Python"})
-
-	router.HandleFunc("GET /languages", getLanguages)
-	router.HandleFunc("GET /languages/{id}", getLanguage)
-	router.HandleFunc("POST /languages", createLanguage)
-
-	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", HOST, PORT), router))
-}
-
-func getLanguages(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(languages)
-}
-
-func getLanguage(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	for _, item := range languages {
-		if item.ID == id {
-			json.NewEncoder(w).Encode(item)
-			return
-		}
+	config, err := pkg.LoadConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
-	json.NewEncoder(w).Encode(&Language{})
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", health)
+	mux.Handle("/pokedex", handlers.NewPokemonHandler(config))
+
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", *HOST, *PORT), mux))
 }
 
-func createLanguage(w http.ResponseWriter, r *http.Request) {
-	var language Language
-	_ = json.NewDecoder(r.Body).Decode(&language)
-	languages = append(languages, language)
-	json.NewEncoder(w).Encode(language)
+func health(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode("OK")
 }
