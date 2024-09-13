@@ -12,7 +12,6 @@ type Repository struct {
 	conn *pgx.Conn
 }
 
-
 func NewRepository(ctx context.Context, connStr string) (*Repository, error) {
 	conn, err := pgx.Connect(ctx, connStr)
 	if err != nil {
