@@ -7,6 +7,24 @@ on:
     branches: [main]
 
 jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23"
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run linter, vet and tests
+        run: make doctor
+
   build:
     name: Build and Test
     runs-on: ubuntu-latest
