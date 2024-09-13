@@ -1,10 +1,10 @@
 
 # Projec name
 PROJECT_NAME=learn-go-backend
+PORT=8080
 
 # Binary name
 BINARY_NAME=main
-
 
 # Go related variables
 GOBASE=$(shell pwd)
@@ -15,9 +15,11 @@ GOFILES=$(GOBASE)/app/cmd/*.go
 # Make is verbose in Linux. Make it silent.
 MAKEFLAGS += --silent
 
-.PHONY: all build clean run air deps vet fmt test integration builder doctor integration-doctor run-container containerize
+.PHONY: build clean run daemon deps doctor containerize run-container 
 
-all: build
+deps:
+	@echo "Ensuring dependencies are up to date..."
+	@go mod tidy
 
 build: deps
 	@echo "Building..."
@@ -32,59 +34,53 @@ run: build
 	@echo "Running..."
 	@$(GOBINPATH)
 
-air: build
+daemon: build
 	@air --build.cmd "go build -o $(GOBINPATH) $(GOFILES)" --build.bin "$(GOBINPATH)"
 
-deps:
+doctor:
 	@echo "Ensuring dependencies are up to date..."
 	@go mod tidy
 
-vet:
-	@echo "Running go vet..."
-	@go vet ./...
-
-fmt:
 	@echo "Formatting code..."
 	@go fmt ./...
 
-test:
+	@echo "Running go vet..."
+	@go vet ./...
+
 	@echo "Running tests..."
 	@go test ./...
 
-integration:
 	@echo "Running integration tests..."
 	@go test -tags integration ./...
 
-doctor: fmt vet test build
 	@echo "All checks passed!"
-
-integration-doctor: fmt vet test integration build
-	@echo "All checks and integration tests passed!"
-
 
 containerize:
 	@echo "Building container..."
 	@docker build -t $(PROJECT_NAME):latest .
 	@echo "Container built!"
 
+
 run-container: containerize
 	@echo "Running container..."
-	@docker run --name $(PROJECT_NAME) -d -p 8080:8080 $(PROJECT_NAME):latest
+	@docker run --name $(PROJECT_NAME) -d -p $(PORT):$(PORT) $(PROJECT_NAME):latest
+
+
+dockerhub-push: containerize
+	@echo "Pushing container to DockerHub..."
+	@docker tag $(PROJECT_NAME):latest $(DOCKERHUB_USERNAME)/$(PROJECT_NAME):latest
+	@docker push $(DOCKERHUB_USERNAME)/$(PROJECT_NAME):latest
 
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  build            - Build the application"
-	@echo "  clean            - Remove binary and clear cache"
-	@echo "  run              - Build and run the application"
-	@echo "  air              - Deamon running application"
-	@echo "  deps             - Ensure dependencies are up to date"
-	@echo "  vet              - Run go vet"
-	@echo "  fmt              - Format the code"
-	@echo "  test             - Run unit tests"
-	@echo "  integration      - Run integration tests"
-	@echo "  doctor           - Run vet, test, and build"
-	@echo "  integration-doctor - Run vet, test, integration tests, and build"
-	@echo "  containerize     - Build container"
-	@echo "  run-container    - Run container"
-	@echo "  help             - Print this help message"
+	@echo "  build            	- Build the application"
+	@echo "  clean            	- Remove binary and clear cache"
+	@echo "  run              	- Build and run the application"
+	@echo "  daemon             - Deamon running application"
+	@echo "  deps             	- Ensure dependencies are up to date"
+	@echo "  doctor           	- Run vet, test, and build"
+	@echo "  containerize     	- Build container"
+	@echo "  run-container    	- Run container"
+	@echo "  dockerhub-push   	- Push container to DockerHub"
+	@echo "  help             	- Print this help message"

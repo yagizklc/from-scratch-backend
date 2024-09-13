@@ -27,3 +27,10 @@ jobs:
 
       - name: Build
         run: make build
+
+      - name: push to docker hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          docker login -u $DOCKERHUB_USERNAME -p $${{ secrets.DOCKERHUB_PASSWORD }}
+          make dockerhub-push
